@@ -18,7 +18,7 @@ import {
   getSizes,
   selectPresetModifiedPrompts,
 } from 'features/nodes/util/graph/graphBuilderUtils';
-import type { ImageOutputNodes } from 'features/nodes/util/graph/types';
+import type { GraphBuilderReturn, ImageOutputNodes } from 'features/nodes/util/graph/types';
 import { selectMainModelConfig } from 'services/api/endpoints/models';
 import type { Invocation } from 'services/api/types';
 import type { Equals } from 'tsafe';
@@ -26,10 +26,7 @@ import { assert } from 'tsafe';
 
 const log = logger('system');
 
-export const buildSD3Graph = async (
-  state: RootState,
-  manager: CanvasManager
-): Promise<{ g: Graph; noise: Invocation<'sd3_denoise'>; posCond: Invocation<'sd3_text_encoder'> }> => {
+export const buildSD3Graph = async (state: RootState, manager: CanvasManager): Promise<GraphBuilderReturn> => {
   const generationMode = await manager.compositor.getGenerationMode();
   log.debug({ generationMode }, 'Building SD3 graph');
 
@@ -165,6 +162,7 @@ export const buildSD3Graph = async (
       scaledSize,
       denoising_start,
       fp32: false,
+      seed,
     });
     g.upsertMetadata({ generation_mode: 'sd3_inpaint' });
   } else if (generationMode === 'outpaint') {
@@ -181,6 +179,7 @@ export const buildSD3Graph = async (
       scaledSize,
       denoising_start,
       fp32: false,
+      seed,
     });
     g.upsertMetadata({ generation_mode: 'sd3_outpaint' });
   } else {
@@ -211,5 +210,9 @@ export const buildSD3Graph = async (
   });
 
   g.setMetadataReceivingNode(canvasOutput);
-  return { g, noise: denoise, posCond };
+  return {
+    g,
+    seedFieldIdentifier: { nodeId: denoise.id, fieldName: 'seed' },
+    positivePromptFieldIdentifier: { nodeId: posCond.id, fieldName: 'prompt' },
+  };
 };

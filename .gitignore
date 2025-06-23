@@ -187,3 +187,4 @@ installer/install.sh
 installer/update.bat
 installer/update.sh
 installer/InvokeAI-Installer/
+.aider*
